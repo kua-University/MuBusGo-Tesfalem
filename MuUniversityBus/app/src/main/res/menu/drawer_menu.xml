@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/map_normal"
+            android:title="Normal Map"
+            android:icon="@android:drawable/ic_menu_mapmode" />
+
+        <item
+            android:id="@+id/map_satellite"
+            android:title="Satellite Map"
+            android:icon="@android:drawable/ic_menu_mapmode" />
+
+        <item
+            android:id="@+id/map_terrain"
+            android:title="Terrain Map"
+            android:icon="@android:drawable/ic_menu_mapmode" />
+
+        <item
+            android:id="@+id/map_hybrid"
+            android:title="Hybrid Map"
+            android:icon="@android:drawable/ic_menu_mapmode" />
+    </group>
+
+</menu>
+

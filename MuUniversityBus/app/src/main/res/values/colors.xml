@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000111</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="PrimaryColor">#007CFF</color>
+    <color name="SecondaryColor">#deeeff</color>
+    <color name="AccentColors">#053769</color>
+    <color name="backgroundCo">#a5e0ff</color>
+
+        <color name="colorPrimary">#6200EE</color> <!-- Deep Purple -->
+        <color name="colorPrimaryDark">#3700B3</color>
+        <color name="colorAccent">#03DAC5</color> <!-- Teal -->
+        <color name="backgroundLight">#F5F5F5</color> <!-- Light Gray -->
+        <color name="textColorPrimary">#212121</color> <!-- Dark Gray -->
+        <color name="textColorSecondary">#757575</color> <!-- Medium Gray -->
+        <color name="toolbarBackground">#6200EE</color> <!-- Deep Purple -->
+        <color name="bottomNavBackground">#FFFFFF</color> <!-- White -->
+        <color name="grey">#808080</color>
+
+    <color name="menuBackground">#37474F</color> <!-- Dark Gray Background -->
+
+</resources>
+

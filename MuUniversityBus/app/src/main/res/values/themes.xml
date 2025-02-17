@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+
+    <style name="Base.Theme.MuUniversityBus" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your theme -->
+    </style>
+
+    <style name="Theme.MuUniversityBus" parent="Base.Theme.MuUniversityBus" />
+</resources>
+
+

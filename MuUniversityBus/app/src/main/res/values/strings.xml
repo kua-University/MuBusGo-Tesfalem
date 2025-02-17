@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">MuUniversityBus</string>
+    <string name="Welcome">Welcome! \nMu Bus Service </string>
+    <string name="Key">"Key Features:
+        \nReal-time Bus Tracking: Illustration of a bus moving along a route on a map.
+        "</string>
+    <string name="onbrd3">Signing up for an account.\n
+        Selecting preferred bus routes.</string>
+        <string name="Get">Get Started</string>
+        <string name="signin">SING IN</string>
+        <string name="singup">SIGN UP</string>
+        <string name="haveAcc">Already have an account?</string>
+        <string name="open_drawer">Open Menu</string>
+        <string name="close_drawer">Close Menu</string>
+        <string name="image">image</string>
+        <string name="googleApi">AIzaSyDJ-l_aoTL0zA6LxUE_VDO8QH5hT8s86CE</string>
+    <string name="say_goodbye_to_long_waits_and_uncertainty">Say goodbye to long waits and uncertainty!</string>
+    <string name="will">እንኳዕ ደሓን መፁ!</string>
+
+</resources>
