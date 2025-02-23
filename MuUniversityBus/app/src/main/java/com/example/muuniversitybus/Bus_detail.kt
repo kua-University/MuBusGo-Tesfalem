@@ -10,18 +10,13 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.drawerlayout.widget.DrawerLayout
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
-import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
 import com.google.android.material.navigation.NavigationView
 import com.google.firebase.database.*
-import kotlinx.coroutines.*
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import okhttp3.*
 import org.json.JSONObject
+import java.io.IOException
 
 class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
 
@@ -29,13 +24,13 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var routeId: String
     private lateinit var busId: String
     private lateinit var busMarker: Marker
+    private var routeCoordinates: List<LatLng> = listOf()
     private var currentIndex = 0
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
     private lateinit var toggle: ActionBarDrawerToggle
     private var isMoving = false
-    private lateinit var routeCoordinates: List<LatLng>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,6 +46,17 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
         drawerLayout.addDrawerListener(toggle)
         toggle.syncState()
         toggle.drawerArrowDrawable.color = resources.getColor(android.R.color.white, theme)
+
+        navigationView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.map_normal -> googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+                R.id.map_satellite -> googleMap.mapType = GoogleMap.MAP_TYPE_SATELLITE
+                R.id.map_terrain -> googleMap.mapType = GoogleMap.MAP_TYPE_TERRAIN
+                R.id.map_hybrid -> googleMap.mapType = GoogleMap.MAP_TYPE_HYBRID
+            }
+            drawerLayout.closeDrawers()
+            true
+        }
 
         routeId = intent.getStringExtra("routeId") ?: finish().let { return }
         busId = intent.getStringExtra("busId") ?: finish().let { return }
@@ -76,23 +82,7 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
                     val start = LatLng(startLat, startLng)
                     val destination = LatLng(destLat, destLng)
 
-                    fetchRoute(start, destination)
-
-                    googleMap.addMarker(
-                        MarkerOptions().position(start)
-                            .title("Start: ${getLocationName(start)}")
-                    )
-
-                    googleMap.addMarker(
-                        MarkerOptions().position(destination)
-                            .title("Destination: ${getLocationName(destination)}")
-                    )
-
-                    busMarker = googleMap.addMarker(
-                        MarkerOptions().position(start).title("Bus: $busId")
-                    ) ?: return 
-
-                    googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 15f)) 
+                    fetchRouteFromGoogleAPI(start, destination)
                 }
             }
 
@@ -102,94 +92,64 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
         })
     }
 
-    private fun fetchRoute(start: LatLng, destination: LatLng) {
-        val apiKey = "googleApi" 
-        val url = "https://maps.googleapis.com/maps/api/directions/json?origin=${start.latitude},${start.longitude}&destination=${destination.latitude},${destination.longitude}&key=$apiKey"
+    private fun fetchRouteFromGoogleAPI(start: LatLng, destination: LatLng) {
+        val apiKey = "YOUR_GOOGLE_MAPS_API_KEY"
+        val url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=${start.latitude},${start.longitude}" +
+                "&destination=${destination.latitude},${destination.longitude}" +
+                "&mode=driving" +
+                "&key=$apiKey"
 
-        CoroutineScope(Dispatchers.IO).launch {
-            val response = makeApiCall(url)
-            withContext(Dispatchers.Main) {
-                handleApiResponse(response)
-            }
-        }
-    }
-
-    private fun makeApiCall(url: String): String? {
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
 
-        return try {
-            val response: Response = client.newCall(request).execute()
-            if (response.isSuccessful) {
-                response.body?.string()
-            } else {
-                null
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    Toast.makeText(this@Bus_detail, "Failed to get route", Toast.LENGTH_SHORT).show()
+                }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.body?.string()?.let { responseBody ->
+                    val jsonResponse = JSONObject(responseBody)
+                    val routes = jsonResponse.getJSONArray("routes")
+                    if (routes.length() > 0) {
+                        val legs = routes.getJSONObject(0).getJSONArray("legs")
+                        val steps = legs.getJSONObject(0).getJSONArray("steps")
+
+                        val path = mutableListOf<LatLng>()
+                        for (i in 0 until steps.length()) {
+                            val step = steps.getJSONObject(i)
+                            val endLocation = step.getJSONObject("end_location")
+                            val lat = endLocation.getDouble("lat")
+                            val lng = endLocation.getDouble("lng")
+                            path.add(LatLng(lat, lng))
+                        }
+
+                        runOnUiThread {
+                            updateRouteOnMap(path)
+                        }
+                    }
+                }
+            }
+        })
     }
 
-    private fun handleApiResponse(response: String?) {
-        if (response != null) {
-            val jsonObject = JSONObject(response)
-            val routes = jsonObject.getJSONArray("routes")
-            if (routes.length() > 0) {
-                val points = routes.getJSONObject(0).getJSONObject("overview_polyline").getString("points")
-                routeCoordinates = decodePoly(points)
+    private fun updateRouteOnMap(route: List<LatLng>) {
+        routeCoordinates = route
 
-               
-                startBusMovement()
-            } else {
-                Toast.makeText(this, "No routes found", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+        googleMap.addPolyline(
+            PolylineOptions().addAll(routeCoordinates).color(Color.BLUE).width(10f)
+        )
 
-    private fun decodePoly(encoded: String): List<LatLng> {
-        val poly = ArrayList<LatLng>()
-        var index = 0
-        val len = encoded.length
-        var lat = 0
-        var lng = 0
+        busMarker = googleMap.addMarker(
+            MarkerOptions().position(routeCoordinates[0]).title("Bus: $busId")
+        )!!
 
-        while (index < len) {
-            var b: Int
-            var shift = 0
-            var result = 0
-            do {
-                b = encoded[index++].toInt() - 63
-                result = result or ((b and 0x1f) shl shift)
-                shift += 5
-            } while (b >= 0x20)
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(routeCoordinates[0], 15f))
 
-            val dlat = if (result and 1 != 0) {
-                -(result shr 1)
-            } else {
-                result shr 1
-            }
-            lat += dlat
-
-            shift = 0
-            result = 0
-            do {
-                b = encoded[index++].toInt() - 63
-                result = result or ((b and 0x1f) shl shift)
-                shift += 5
-            } while (b >= 0x20)
-
-            val dlng = if (result and 1 != 0) {
-                -(result shr 1)
-            } else {
-                result shr 1
-            }
-            lng += dlng
-
-            val p = LatLng((lat.toDouble() / 1E5), (lng.toDouble() / 1E5))
-            poly.add(p)
-        }
-        return poly
+        startBusMovement()
     }
 
     private fun startBusMovement() {
@@ -204,7 +164,7 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
             val start = routeCoordinates[currentIndex]
             val end = routeCoordinates[currentIndex + 1]
 
-            animateBusMovement(start, end, 6000) { 
+            animateBusMovement(start, end, 3000) {
                 currentIndex++
                 moveBusSmoothly()
             }
@@ -219,14 +179,10 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
         handler.post(object : Runnable {
             override fun run() {
                 val elapsed = System.currentTimeMillis() - startTime
-                val fraction = elapsed.toFloat() 
+                val fraction = elapsed.toFloat() / duration
                 if (fraction < 1.0) {
                     busMarker.position = interpolate(start, end, fraction)
-
-                    if (currentIndex % 3 == 0) {
-                        googleMap.animateCamera(CameraUpdateFactory.newLatLng(busMarker.position))
-                    }
-
+                    googleMap.animateCamera(CameraUpdateFactory.newLatLng(busMarker.position))
                     handler.postDelayed(this, 100)
                 } else {
                     busMarker.position = end
@@ -240,10 +196,6 @@ class Bus_detail : AppCompatActivity(), OnMapReadyCallback {
         val lat = start.latitude + (end.latitude - start.latitude) * fraction
         val lng = start.longitude + (end.longitude - start.longitude) * fraction
         return LatLng(lat, lng)
-    }
-
-    private fun getLocationName(latLng: LatLng): String {
-        return "(${latLng.latitude}, ${latLng.longitude})" 
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
