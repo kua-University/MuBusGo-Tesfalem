@@ -29,7 +29,7 @@
 ``` android
 <meta-data
   android:name="com.google.android.geo.API_KEY"
-  android:value="AIzaSyDJ-l_aoTL0zA6LxUE_VDO8QH5hT8s86CE"/>
+  android:value="your api key/>
 ```
 6.	Run the App on an emulator or physical device.
 Future Improvements
